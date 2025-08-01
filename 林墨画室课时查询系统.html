@@ -1,0 +1,2098 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>林墨画室学员课时管理系统</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        :root {
+            --primary: #3498db;
+            --success: #2ecc71;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+            --dark: #2c3e50;
+            --light: #ecf0f1;
+            --card-bg: rgba(255, 255, 255, 0.95);
+            --teacher-bg: linear-gradient(135deg, #1a2980, #26d0ce);
+            --parent-bg: linear-gradient(135deg, #3a7bd5, #00d2ff);
+        }
+        
+        body {
+            background: var(--parent-bg);
+            color: #333;
+            min-height: 100vh;
+            padding: 15px;
+            background-attachment: fixed;
+            transition: background 0.5s ease;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        body.teacher-dashboard {
+            background: var(--teacher-bg);
+        }
+        
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 15px;
+        }
+        
+        /* 家长查询页面样式 */
+        #parentDashboard {
+            display: block;
+            width: 100%;
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 30px 20px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            text-align: center;
+            animation: fadeIn 0.8s ease;
+        }
+        
+        #teacherDashboard {
+            display: none;
+        }
+        
+        .parent-header {
+            margin-bottom: 20px;
+            color: #2c3e50;
+        }
+        
+        .parent-header h1 {
+            font-size: 1.8rem;
+            margin-bottom: 8px;
+            color: #1a2980;
+            position: relative;
+            display: inline-block;
+        }
+        
+        .parent-header h1:after {
+            content: "";
+            position: absolute;
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 3px;
+            background: #3498db;
+            border-radius: 2px;
+        }
+        
+        .parent-header p {
+            font-size: 1rem;
+            color: #7f8c8d;
+            margin-top: 15px;
+        }
+        
+        .login-link {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            color: white;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px 15px;
+            border-radius: 20px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+            z-index: 100;
+        }
+        
+        .login-link:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+        
+        .search-container {
+            position: relative;
+            margin: 20px auto;
+            max-width: 100%;
+        }
+        
+        .search-container i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #7f8c8d;
+            font-size: 1rem;
+        }
+        
+        .search-container input {
+            width: 100%;
+            padding: 12px 15px 12px 45px;
+            border: 1px solid #e1e5eb;
+            border-radius: 30px;
+            font-size: 1rem;
+            transition: all 0.3s;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+        }
+        
+        .search-container input:focus {
+            border-color: var(--primary);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+        }
+        
+        .search-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 30px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 15px;
+            box-shadow: 0 3px 10px rgba(52, 152, 219, 0.2);
+            width: 100%;
+            max-width: 200px;
+        }
+        
+        .search-btn:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+        }
+        
+        .result-container {
+            margin-top: 25px;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            display: none;
+        }
+        
+        .result-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .result-table th {
+            background: var(--primary);
+            color: white;
+            padding: 12px 15px;
+            font-size: 1rem;
+            font-weight: 600;
+            text-align: left;
+        }
+        
+        .result-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #f0f4f8;
+            font-size: 0.95rem;
+        }
+        
+        .result-table tr:nth-child(even) {
+            background-color: #f8fafc;
+        }
+        
+        .no-result {
+            padding: 30px 15px;
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 0.95rem;
+        }
+        
+        .no-result i {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            color: #bdc3c7;
+        }
+        
+        /* 教师后台样式 */
+        .teacher-header {
+            text-align: center;
+            padding: 20px 0;
+            color: white;
+            margin-bottom: 15px;
+            position: relative;
+        }
+        
+        .logout-btn {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            padding: 8px 15px;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.3s;
+            font-weight: 600;
+            border: none;
+            font-size: 0.9rem;
+            z-index: 100;
+        }
+        
+        .logout-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .teacher-header h1 {
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+            text-shadow: 0 1px 5px rgba(0,0,0,0.2);
+        }
+        
+        .teacher-header p {
+            font-size: 1rem;
+            max-width: 100%;
+            margin: 0 auto;
+            line-height: 1.5;
+            opacity: 0.9;
+            padding: 0 15px;
+        }
+        
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            padding: 25px;
+            margin-bottom: 20px;
+            transition: transform 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-3px);
+        }
+        
+        .card-title {
+            font-size: 1.3rem;
+            color: var(--dark);
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #f0f4f8;
+            display: flex;
+            align-items: center;
+        }
+        
+        .card-title i {
+            margin-right: 10px;
+            color: var(--primary);
+            font-size: 1.2rem;
+        }
+        
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+            min-width: calc(50% - 5px);
+        }
+        
+        .btn i {
+            margin-right: 5px;
+            font-size: 0.9rem;
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+        
+        .btn-warning {
+            background: var(--warning);
+            color: white;
+        }
+        
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+        
+        .btn-info {
+            background: #17a2b8;
+            color: white;
+        }
+        
+        .btn:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+            box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            color: var(--dark);
+            font-size: 0.95rem;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #e1e5eb;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            transition: border-color 0.3s;
+        }
+        
+        .form-control:focus {
+            border-color: var(--primary);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+        }
+        
+        .table-container {
+            overflow-x: auto;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            min-width: 600px;
+        }
+        
+        th, td {
+            padding: 12px 10px;
+            text-align: left;
+            border-bottom: 1px solid #f0f4f8;
+            font-size: 0.9rem;
+        }
+        
+        th {
+            background-color: var(--primary);
+            color: white;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            font-size: 0.95rem;
+        }
+        
+        tr:nth-child(even) {
+            background-color: #f8fafc;
+        }
+        
+        tr:hover {
+            background-color: #f0f7ff;
+        }
+        
+        .attendance-cell {
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 600;
+            position: relative;
+            font-size: 0.95rem;
+        }
+        
+        .attendance-cell:hover {
+            background-color: #e1f0fa;
+        }
+        
+        .attendance-cell:hover::after {
+            content: "点击记录考勤";
+            position: absolute;
+            right: 5px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: var(--primary);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: normal;
+        }
+        
+        .low-hours {
+            color: var(--danger) !important;
+            font-weight: 700;
+        }
+        
+        .action-cell {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .action-btn {
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+        }
+        
+        .edit-btn {
+            background: var(--warning);
+            color: white;
+        }
+        
+        .delete-btn {
+            background: var(--danger);
+            color: white;
+        }
+        
+        .undo-btn {
+            background: #9b59b6;
+            color: white;
+            padding: 3px 6px;
+            font-size: 0.7rem;
+            margin-left: 5px;
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            text-align: center;
+            margin-top: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .stat-card {
+            background: var(--card-bg);
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+            flex: 1;
+            min-width: calc(33.33% - 10px);
+            transition: transform 0.3s;
+            cursor: pointer;
+        }
+        
+        .stat-card:hover {
+            transform: scale(1.03);
+        }
+        
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin: 8px 0;
+        }
+        
+        .stat-label {
+            color: #7f8c8d;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 15px;
+            box-sizing: border-box;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 600px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            position: relative;
+            animation: modalOpen 0.4s ease;
+            max-height: 90vh;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        @keyframes modalOpen {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .close-modal {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #7f8c8d;
+            transition: color 0.3s;
+        }
+        
+        .close-modal:hover {
+            color: var(--danger);
+        }
+        
+        .footer {
+            text-align: center;
+            color: white;
+            padding: 15px;
+            margin-top: 20px;
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+        
+        .highlight {
+            animation: highlight 2s ease;
+        }
+        
+        @keyframes highlight {
+            0% { background-color: rgba(46, 204, 113, 0.5); }
+            100% { background-color: transparent; }
+        }
+        
+        .import-info {
+            background: #e3f2fd;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 12px;
+            font-size: 0.85rem;
+        }
+        
+        .import-info h4 {
+            margin-bottom: 8px;
+            color: var(--primary);
+            font-size: 1rem;
+        }
+        
+        .low-indicator {
+            background: var(--danger);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            margin-left: 5px;
+            font-weight: normal;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 30px 15px;
+            color: #7f8c8d;
+        }
+        
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            color: #bdc3c7;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(15px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .history-item {
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+        }
+        
+        .history-list {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 12px;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .negative-hours {
+            color: #c0392b !important;
+            font-weight: 700;
+        }
+        
+        .login-modal-content {
+            max-width: 100%;
+        }
+        
+        /* 文件导入区域样式 */
+        .file-import-area {
+            border: 2px dashed #3498db;
+            border-radius: 10px;
+            padding: 25px;
+            text-align: center;
+            margin: 20px 0;
+            background: rgba(52, 152, 219, 0.05);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .file-import-area:hover {
+            background: rgba(52, 152, 219, 0.1);
+            border-color: #2980b9;
+        }
+        
+        .file-import-area i {
+            font-size: 2.5rem;
+            color: #3498db;
+            margin-bottom: 12px;
+        }
+        
+        .file-import-area h3 {
+            color: #2c3e50;
+            margin-bottom: 8px;
+            font-size: 1.1rem;
+        }
+        
+        .file-import-area p {
+            color: #7f8c8d;
+            margin-bottom: 12px;
+            font-size: 0.9rem;
+        }
+        
+        .file-import-btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin: 0 auto;
+            display: block;
+            max-width: 200px;
+        }
+        
+        .file-import-btn:hover {
+            background: #2980b9;
+        }
+        
+        .file-types {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .file-type {
+            background: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            font-size: 0.85rem;
+        }
+        
+        .file-type i {
+            font-size: 1.2rem;
+            color: #3498db;
+            margin-bottom: 5px;
+        }
+        
+        .status-message {
+            padding: 8px;
+            border-radius: 6px;
+            margin-top: 12px;
+            text-align: center;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+        
+        .status-success {
+            background: rgba(46, 204, 113, 0.15);
+            color: #27ae60;
+        }
+        
+        .status-error {
+            background: rgba(231, 76, 60, 0.15);
+            color: #c0392b;
+        }
+        
+        .import-options {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            justify-content: center;
+        }
+        
+        .import-option {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.85rem;
+        }
+        
+        .file-format-example {
+            background: #f9f9f9;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 12px;
+            border-left: 3px solid #3498db;
+            font-family: monospace;
+            font-size: 0.8rem;
+            line-height: 1.5;
+            overflow-x: auto;
+        }
+        
+        /* 移动端特定样式 */
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+                font-size: 13px;
+            }
+            
+            .container {
+                padding: 10px;
+            }
+            
+            #parentDashboard {
+                padding: 15px 10px;
+                margin: 10px auto;
+            }
+            
+            .parent-header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .parent-header p {
+                font-size: 0.9rem;
+                margin-top: 10px;
+            }
+            
+            .search-container input {
+                padding: 10px 10px 10px 40px;
+                font-size: 0.95rem;
+            }
+            
+            .search-btn {
+                padding: 10px 20px;
+                font-size: 0.95rem;
+            }
+            
+            .teacher-header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .teacher-header p {
+                font-size: 0.9rem;
+            }
+            
+            .card {
+                padding: 15px;
+            }
+            
+            .card-title {
+                font-size: 1.2rem;
+            }
+            
+            .btn {
+                padding: 8px 12px;
+                font-size: 0.85rem;
+                min-width: 100%;
+            }
+            
+            .stat-card {
+                min-width: calc(50% - 5px);
+                padding: 12px;
+            }
+            
+            .stat-value {
+                font-size: 1.5rem;
+            }
+            
+            .stat-label {
+                font-size: 0.8rem;
+            }
+            
+            .file-import-area {
+                padding: 15px;
+            }
+            
+            .file-import-area h3 {
+                font-size: 1rem;
+            }
+            
+            .file-import-area p {
+                font-size: 0.85rem;
+            }
+            
+            .file-types {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .file-type {
+                width: 100%;
+                max-width: 200px;
+            }
+            
+            th, td {
+                padding: 8px 6px;
+                font-size: 0.85rem;
+            }
+            
+            .action-cell {
+                flex-direction: column;
+                gap: 5px;
+            }
+            
+            .action-btn {
+                width: 100%;
+            }
+            
+            .modal-content {
+                padding: 15px;
+            }
+        }
+        
+        /* 系统状态指示器 */
+        .system-status {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            padding: 8px 15px;
+            color: white;
+            font-weight: 600;
+            font-size: 0.9rem;
+            z-index: 100;
+        }
+        
+        /* 品牌标识 */
+        .brand {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .brand-logo {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, #1a2980, #26d0ce);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 18px;
+        }
+        
+        .brand-name {
+            font-weight: 700;
+            color: white;
+            font-size: 1.1rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- 家长查询页面 -->
+    <div id="parentDashboard">
+        <div class="brand">
+            <div class="brand-logo">
+                <i class="fas fa-palette"></i>
+            </div>
+            <div class="brand-name">林墨画室</div>
+        </div>
+        
+        <a href="#" class="login-link" id="teacherLoginLink">
+            <i class="fas fa-sign-in-alt"></i> 教师登录
+        </a>
+        
+        <div class="parent-header">
+            <h1>林墨画室学员课时查询</h1>
+            <p>请输入学员姓名查询剩余课时信息</p>
+        </div>
+        
+        <div class="search-container">
+            <i class="fas fa-search"></i>
+            <input type="text" id="parentSearchInput" placeholder="请输入学员姓名..." autocapitalize="off" autocorrect="off">
+        </div>
+        
+        <button class="search-btn" id="parentSearchBtn">
+            <i class="fas fa-search"></i> 查询课时
+        </button>
+        
+        <div class="result-container" id="parentResult">
+            <table class="result-table">
+                <thead>
+                    <tr>
+                        <th>姓名</th>
+                        <th>剩余课时</th>
+                        <th>班级</th>
+                        <th>报名日期</th>
+                    </tr>
+                </thead>
+                <tbody id="parentResultBody">
+                    <!-- 查询结果将在这里显示 -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- 教师管理后台 -->
+    <div id="teacherDashboard">
+        <div class="system-status">
+            <i class="fas fa-circle" style="color: #2ecc71; margin-right: 5px;"></i> 系统运行中
+        </div>
+        
+        <div class="container">
+            <div class="teacher-header">
+                <div class="brand">
+                    <div class="brand-logo">
+                        <i class="fas fa-palette"></i>
+                    </div>
+                    <div class="brand-name">林墨画室</div>
+                </div>
+                
+                <button class="logout-btn" id="logoutBtn">
+                    <i class="fas fa-sign-out-alt"></i> 退出登录
+                </button>
+                <h1><i class="fas fa-user-graduate"></i> 学员课时管理系统</h1>
+                <p>教师专业版 - 全面管理学员出勤与课时信息</p>
+            </div>
+            
+            <div class="card">
+                <h2 class="card-title">
+                    <i class="fas fa-users"></i>
+                    <span>学员管理</span>
+                </h2>
+                
+                <div class="controls">
+                    <button class="btn btn-primary" id="importBtn">
+                        <i class="fas fa-file-import"></i> 导入
+                    </button>
+                    <button class="btn btn-success" id="addStudentBtn">
+                        <i class="fas fa-user-plus"></i> 添加
+                    </button>
+                    <button class="btn btn-warning" id="exportBtn">
+                        <i class="fas fa-file-export"></i> 导出
+                    </button>
+                    <button class="btn btn-danger" id="resetBtn">
+                        <i class="fas fa-trash-alt"></i> 重置
+                    </button>
+                    <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" style="display: none;">
+                    
+                    <div class="search-container" style="width: 100%; margin: 10px 0;">
+                        <i class="fas fa-search"></i>
+                        <input type="text" class="form-control" id="teacherSearchInput" placeholder="搜索学员姓名或班级..." autocapitalize="off" autocorrect="off">
+                    </div>
+                </div>
+                
+                <!-- 文件导入区域 -->
+                <div class="file-import-area" id="dropArea">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <h3>导入学员数据文件</h3>
+                    <p>支持CSV或Excel格式文件</p>
+                    <button class="file-import-btn" id="selectFileBtn">
+                        <i class="fas fa-folder-open"></i> 选择文件
+                    </button>
+                    
+                    <div class="file-types">
+                        <div class="file-type">
+                            <i class="fas fa-file-csv"></i>
+                            <div>CSV格式</div>
+                        </div>
+                        <div class="file-type">
+                            <i class="fas fa-file-excel"></i>
+                            <div>Excel格式</div>
+                        </div>
+                    </div>
+                    
+                    <div class="import-options">
+                        <div class="import-option">
+                            <input type="checkbox" id="headerCheckbox" checked>
+                            <label for="headerCheckbox">包含标题行</label>
+                        </div>
+                    </div>
+                    
+                    <div id="importStatus" class="status-message"></div>
+                    
+                    <div class="file-format-example">
+                        <div>文件格式示例：</div>
+                        <div>姓名,班级,总课时,报名日期,上课次数,签到历史</div>
+                        <div>张三,三年二班,20,2023-09-01,5,"2023-09-05 08:30;2023-09-12 08:35"</div>
+                    </div>
+                </div>
+                
+                <div class="import-info">
+                    <h4><i class="fas fa-info-circle"></i> 文件导入说明</h4>
+                    <p>1. 文件格式要求：姓名,班级,总课时,报名日期,上课次数,签到历史</p>
+                    <p>2. 上课次数为整数，签到历史为分号分隔的日期时间字符串</p>
+                    <p>3. 支持Excel文件（.xlsx, .xls）和CSV文件（.csv）</p>
+                </div>
+                
+                <div class="table-container">
+                    <table id="studentTable">
+                        <thead>
+                            <tr>
+                                <th>姓名</th>
+                                <th>剩余课时</th>
+                                <th>已上课时</th>
+                                <th>班级</th>
+                                <th>总课时</th>
+                                <th>报名时间</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                            <!-- 学员数据将通过JavaScript动态生成 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="stats">
+                <div class="stat-card" id="totalStudentsCard">
+                    <div class="stat-value" id="totalStudents">0</div>
+                    <div class="stat-label">学员总数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="totalClasses">0</div>
+                    <div class="stat-label">总上课次数</div>
+                </div>
+                <div class="stat-card" id="lowHoursCard">
+                    <div class="stat-value" id="lowHours">0</div>
+                    <div class="stat-label">剩余课时≤5</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 添加学员模态框 -->
+        <div class="modal" id="addModal">
+            <div class="modal-content">
+                <span class="close-modal">&times;</span>
+                <h2 class="card-title"><i class="fas fa-user-plus"></i> 添加新学员</h2>
+                <div class="form-group">
+                    <label for="studentName">学员姓名</label>
+                    <input type="text" class="form-control" id="studentName" placeholder="请输入学员姓名">
+                </div>
+                <div class="form-group">
+                    <label for="studentClass">班级</label>
+                    <input type="text" class="form-control" id="studentClass" placeholder="请输入班级">
+                </div>
+                <div class="form-group">
+                    <label for="totalHours">总课时</label>
+                    <input type="number" class="form-control" id="totalHours" placeholder="请输入总课时数" min="1" value="20">
+                </div>
+                <div class="form-group">
+                    <label for="startDate">报名日期</label>
+                    <input type="date" class="form-control" id="startDate">
+                </div>
+                <button class="btn btn-success" id="saveStudentBtn">
+                    <i class="fas fa-save"></i> 保存学员信息
+                </button>
+            </div>
+        </div>
+        
+        <!-- 编辑学员模态框 -->
+        <div class="modal" id="editModal">
+            <div class="modal-content">
+                <span class="close-modal">&times;</span>
+                <h2 class="card-title"><i class="fas fa-user-edit"></i> 编辑学员信息</h2>
+                <input type="hidden" id="editId">
+                <div class="form-group">
+                    <label for="editName">学员姓名</label>
+                    <input type="text" class="form-control" id="editName" placeholder="请输入学员姓名">
+                </div>
+                <div class="form-group">
+                    <label for="editClass">班级</label>
+                    <input type="text" class="form-control" id="editClass" placeholder="请输入班级">
+                </div>
+                <div class="form-group">
+                    <label for="editTotalHours">总课时</label>
+                    <input type="number" class="form-control" id="editTotalHours" placeholder="请输入总课时数" min="1">
+                </div>
+                <div class="form-group">
+                    <label for="editStartDate">报名日期</label>
+                    <input type="date" class="form-control" id="editStartDate">
+                </div>
+                <div class="form-group">
+                    <label for="editAttended">已上课次数</label>
+                    <input type="number" class="form-control" id="editAttended" placeholder="已上课次数" min="0">
+                </div>
+                <div class="form-group">
+                    <label>签到历史（点击撤销可回撤签到）</label>
+                    <div class="history-list" id="attendanceHistory">
+                        <!-- 签到历史将在这里显示 -->
+                    </div>
+                </div>
+                <button class="btn btn-success" id="updateStudentBtn">
+                    <i class="fas fa-sync-alt"></i> 更新学员信息
+                </button>
+            </div>
+        </div>
+        
+        <!-- 低课时学员模态框 -->
+        <div class="modal" id="lowHoursModal">
+            <div class="modal-content">
+                <span class="close-modal">&times;</span>
+                <h2 class="card-title"><i class="fas fa-exclamation-triangle"></i> 剩余课时不足学员</h2>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>姓名</th>
+                                <th>剩余课时</th>
+                                <th>班级</th>
+                                <th>报名日期</th>
+                            </tr>
+                        </thead>
+                        <tbody id="lowHoursList">
+                            <!-- 低课时学员列表将在这里显示 -->
+                        </tbody>
+                    </table>
+                </div>
+                <div style="margin-top: 15px; text-align: center;">
+                    <button class="btn btn-warning" id="exportLowHoursBtn">
+                        <i class="fas fa-file-export"></i> 导出低课时学员
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>林墨画室学员课时管理系统 &copy; 2023 | 教师专用</p>
+        </div>
+    </div>
+    
+    <!-- 登录模态框 -->
+    <div class="modal" id="loginModal">
+        <div class="modal-content login-modal-content">
+            <span class="close-modal">&times;</span>
+            <h2 class="card-title"><i class="fas fa-lock"></i> 教师登录</h2>
+            <div class="form-group">
+                <label for="username">用户名</label>
+                <input type="text" class="form-control" id="username" placeholder="请输入用户名">
+            </div>
+            <div class="form-group">
+                <label for="password">密码</label>
+                <input type="password" class="form-control" id="password" placeholder="请输入密码">
+            </div>
+            <div class="form-group" style="color: var(--danger); display: none;" id="loginError">
+                <i class="fas fa-exclamation-circle"></i> 用户名或密码错误
+            </div>
+            <button class="btn btn-primary" id="loginBtn">
+                <i class="fas fa-sign-in-alt"></i> 登录
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // 示例学员数据
+        let students = [
+            { id: 1, name: "张三", class: "三年二班", totalHours: 20, startDate: "2023-09-01", attended: 5, attendanceHistory: ["2023-09-05 08:30", "2023-09-12 08:35", "2023-09-19 08:40", "2023-09-26 08:32", "2023-10-03 08:45"] },
+            { id: 2, name: "李四", class: "四年一班", totalHours: 30, startDate: "2023-08-15", attended: 10, attendanceHistory: ["2023-08-22 09:10", "2023-08-29 09:15", "2023-09-05 09:05", "2023-09-12 09:20", "2023-09-19 09:00", "2023-09-26 09:10", "2023-10-03 09:05", "2023-10-10 09:15", "2023-10-17 09:20", "2023-10-24 09:10"] },
+            { id: 3, name: "王五", class: "三年一班", totalHours: 15, startDate: "2023-09-10", attended: 15, attendanceHistory: ["2023-09-12 10:05", "2023-09-19 10:10", "2023-09-26 10:15", "2023-10-03 10:20", "2023-10-10 10:25", "2023-10-17 10:30", "2023-10-24 10:35", "2023-10-31 10:40", "2023-11-07 10:45", "2023-11-14 10:50", "2023-11-21 10:55", "2023-11-28 11:00", "2023-12-05 11:05", "2023-12-12 11:10", "2023-12-19 11:15"] },
+            { id: 4, name: "赵六", class: "五年三班", totalHours: 25, startDate: "2023-08-20", attended: 22, attendanceHistory: [] },
+            { id: 5, name: "钱七", class: "四年二班", totalHours: 40, startDate: "2023-07-05", attended: 38, attendanceHistory: [] },
+            { id: 6, name: "孙八", class: "三年二班", totalHours: 12, startDate: "2023-10-01", attended: 8, attendanceHistory: [] },
+            { id: 7, name: "周九", class: "六年一班", totalHours: 18, startDate: "2023-09-15", attended: 17, attendanceHistory: [] },
+            { id: 8, name: "吴十", class: "五年一班", totalHours: 30, startDate: "2023-08-01", attended: 25, attendanceHistory: [] }
+        ];
+        
+        // DOM 元素
+        const parentDashboard = document.getElementById('parentDashboard');
+        const teacherDashboard = document.getElementById('teacherDashboard');
+        const parentSearchInput = document.getElementById('parentSearchInput');
+        const parentSearchBtn = document.getElementById('parentSearchBtn');
+        const parentResult = document.getElementById('parentResult');
+        const parentResultBody = document.getElementById('parentResultBody');
+        const tableBody = document.getElementById('tableBody');
+        const teacherSearchInput = document.getElementById('teacherSearchInput');
+        const addModal = document.getElementById('addModal');
+        const editModal = document.getElementById('editModal');
+        const lowHoursModal = document.getElementById('lowHoursModal');
+        const loginModal = document.getElementById('loginModal');
+        const importBtn = document.getElementById('importBtn');
+        const exportBtn = document.getElementById('exportBtn');
+        const fileInput = document.getElementById('fileInput');
+        const totalStudentsEl = document.getElementById('totalStudents');
+        const totalClassesEl = document.getElementById('totalClasses');
+        const lowHoursEl = document.getElementById('lowHours');
+        const teacherLoginLink = document.getElementById('teacherLoginLink');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const attendanceHistory = document.getElementById('attendanceHistory');
+        const lowHoursList = document.getElementById('lowHoursList');
+        const lowHoursCard = document.getElementById('lowHoursCard');
+        const totalStudentsCard = document.getElementById('totalStudentsCard');
+        const exportLowHoursBtn = document.getElementById('exportLowHoursBtn');
+        const loginError = document.getElementById('loginError');
+        const dropArea = document.getElementById('dropArea');
+        const selectFileBtn = document.getElementById('selectFileBtn');
+        const importStatus = document.getElementById('importStatus');
+        
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            loadStudents();
+            renderTeacherTable();
+            updateStats();
+            
+            // 设置默认日期为今天
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('startDate').value = today;
+            
+            // 添加事件监听器
+            setupEventListeners();
+        });
+        
+        // 设置事件监听器
+        function setupEventListeners() {
+            // 家长查询按钮
+            parentSearchBtn.addEventListener('click', handleParentSearch);
+            parentSearchInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    handleParentSearch();
+                }
+            });
+            
+            // 教师登录链接
+            teacherLoginLink.addEventListener('click', function(e) {
+                e.preventDefault();
+                loginModal.style.display = 'flex';
+            });
+            
+            // 退出登录按钮
+            logoutBtn.addEventListener('click', logout);
+            
+            // 添加学员按钮
+            document.getElementById('addStudentBtn').addEventListener('click', () => {
+                addModal.style.display = 'flex';
+            });
+            
+            // 保存学员按钮
+            document.getElementById('saveStudentBtn').addEventListener('click', saveStudent);
+            
+            // 更新学员按钮
+            document.getElementById('updateStudentBtn').addEventListener('click', updateStudent);
+            
+            // 关闭模态框
+            document.querySelectorAll('.close-modal').forEach(closeBtn => {
+                closeBtn.addEventListener('click', closeModal);
+            });
+            
+            // 点击模态框外部关闭
+            window.addEventListener('click', (e) => {
+                if (e.target === addModal) closeModal();
+                if (e.target === editModal) closeModal();
+                if (e.target === lowHoursModal) closeModal();
+                if (e.target === loginModal) closeModal();
+            });
+            
+            // 导入数据
+            importBtn.addEventListener('click', () => {
+                fileInput.click();
+            });
+            
+            fileInput.addEventListener('change', handleFileImport);
+            
+            // 选择文件按钮
+            selectFileBtn.addEventListener('click', () => {
+                fileInput.click();
+            });
+            
+            // 导出数据
+            exportBtn.addEventListener('click', exportData);
+            
+            // 教师搜索功能
+            teacherSearchInput.addEventListener('input', handleTeacherSearch);
+            teacherSearchInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    handleTeacherSearch();
+                }
+            });
+            
+            // 重置数据
+            document.getElementById('resetBtn').addEventListener('click', resetData);
+            
+            // 低课时学员卡片
+            lowHoursCard.addEventListener('click', showLowHoursStudents);
+            
+            // 导出低课时学员
+            exportLowHoursBtn.addEventListener('click', exportLowHoursStudents);
+            
+            // 学员总数卡片
+            totalStudentsCard.addEventListener('click', () => {
+                alert(`当前共有 ${students.length} 名学员`);
+            });
+            
+            // 登录按钮
+            document.getElementById('loginBtn').addEventListener('click', handleLogin);
+            
+            // 拖放文件事件
+            setupDragAndDrop();
+        }
+        
+        // 设置拖放功能
+        function setupDragAndDrop() {
+            // 阻止默认拖放行为
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropArea.addEventListener(eventName, preventDefaults, false);
+                document.body.addEventListener(eventName, preventDefaults, false);
+            });
+            
+            // 高亮拖放区域
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropArea.addEventListener(eventName, highlight, false);
+            });
+            
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropArea.addEventListener(eventName, unhighlight, false);
+            });
+            
+            // 处理文件拖放
+            dropArea.addEventListener('drop', handleDrop, false);
+        }
+        
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        function highlight() {
+            dropArea.style.backgroundColor = 'rgba(52, 152, 219, 0.15)';
+            dropArea.style.borderColor = '#2980b9';
+        }
+        
+        function unhighlight() {
+            dropArea.style.backgroundColor = 'rgba(52, 152, 219, 0.05)';
+            dropArea.style.borderColor = '#3498db';
+        }
+        
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            
+            if (files.length) {
+                fileInput.files = files;
+                handleFileImport({ target: fileInput });
+            }
+        }
+        
+        // 从本地存储加载学员数据
+        function loadStudents() {
+            const savedStudents = localStorage.getItem('students');
+            if (savedStudents) {
+                students = JSON.parse(savedStudents);
+            }
+        }
+        
+        // 保存学员数据到本地存储
+        function saveStudents() {
+            localStorage.setItem('students', JSON.stringify(students));
+            updateStats();
+        }
+        
+        // 渲染教师表格
+        function renderTeacherTable(filteredStudents = students) {
+            tableBody.innerHTML = '';
+            
+            if (filteredStudents.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="empty-state">
+                            <i class="fas fa-user-graduate"></i>
+                            <h3>暂无学员数据</h3>
+                            <p>请点击"添加学员"按钮或导入CSV文件添加数据</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            filteredStudents.forEach(student => {
+                const remaining = student.totalHours - student.attended;
+                const row = document.createElement('tr');
+                
+                // 根据剩余课时设置样式
+                let hoursClass = '';
+                if (remaining <= 0) {
+                    hoursClass = 'negative-hours';
+                } else if (remaining <= 5) {
+                    hoursClass = 'low-hours';
+                }
+                
+                row.innerHTML = `
+                    <td class="attendance-cell ${hoursClass}" data-id="${student.id}">
+                        ${student.name}
+                        ${remaining <= 5 && remaining > 0 ? '<span class="low-indicator">不足</span>' : ''}
+                        ${remaining <= 0 ? '<span class="low-indicator">用完</span>' : ''}
+                    </td>
+                    <td class="${hoursClass}">${remaining}</td>
+                    <td>${student.attended}</td>
+                    <td>${student.class}</td>
+                    <td>${student.totalHours}</td>
+                    <td>${student.startDate}</td>
+                    <td class="action-cell">
+                        <button class="action-btn edit-btn" data-id="${student.id}">
+                            <i class="fas fa-edit"></i> 编辑
+                        </button>
+                        <button class="action-btn delete-btn" data-id="${student.id}">
+                            <i class="fas fa-trash"></i> 删除
+                        </button>
+                    </td>
+                `;
+                
+                tableBody.appendChild(row);
+            });
+            
+            // 添加考勤点击事件
+            document.querySelectorAll('.attendance-cell').forEach(cell => {
+                cell.addEventListener('click', function() {
+                    const studentId = parseInt(this.getAttribute('data-id'));
+                    recordAttendance(studentId);
+                });
+            });
+            
+            // 添加编辑按钮事件
+            document.querySelectorAll('.edit-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const studentId = parseInt(this.getAttribute('data-id'));
+                    openEditModal(studentId);
+                });
+            });
+            
+            // 添加删除按钮事件
+            document.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const studentId = parseInt(this.getAttribute('data-id'));
+                    deleteStudent(studentId);
+                });
+            });
+        }
+        
+        // 处理家长查询
+        function handleParentSearch() {
+            const searchTerm = parentSearchInput.value.trim().toLowerCase();
+            
+            if (!searchTerm) {
+                alert('请输入学员姓名');
+                return;
+            }
+            
+            // 模糊匹配学员姓名
+            const filteredStudents = students.filter(s => 
+                s.name.toLowerCase().includes(searchTerm)
+            );
+            
+            parentResult.style.display = 'block';
+            parentResultBody.innerHTML = '';
+            
+            if (filteredStudents.length > 0) {
+                filteredStudents.forEach(student => {
+                    const remaining = student.totalHours - student.attended;
+                    const row = document.createElement('tr');
+                    
+                    row.innerHTML = `
+                        <td>${student.name}</td>
+                        <td class="${remaining <= 5 ? 'low-hours' : ''}">${remaining}</td>
+                        <td>${student.class}</td>
+                        <td>${student.startDate}</td>
+                    `;
+                    
+                    parentResultBody.appendChild(row);
+                });
+            } else {
+                parentResultBody.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="no-result">
+                            <i class="fas fa-user-slash"></i>
+                            <h3>未找到学员信息</h3>
+                            <p>请检查输入的学员姓名是否正确</p>
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+        
+        // 记录考勤
+        function recordAttendance(studentId) {
+            const student = students.find(s => s.id === studentId);
+            if (student) {
+                student.attended++;
+                
+                // 记录签到时间
+                const now = new Date();
+                const timeString = `${now.getFullYear()}-${(now.getMonth()+1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+                
+                if (!student.attendanceHistory) {
+                    student.attendanceHistory = [];
+                }
+                student.attendanceHistory.push(timeString);
+                
+                // 添加高亮效果
+                const row = document.querySelector(`.attendance-cell[data-id="${studentId}"]`).parentNode;
+                row.classList.add('highlight');
+                setTimeout(() => row.classList.remove('highlight'), 2000);
+                
+                saveStudents();
+                renderTeacherTable();
+                
+                // 更新搜索状态
+                if (teacherSearchInput.value) {
+                    handleTeacherSearch();
+                }
+            }
+        }
+        
+        // 回撤签到
+        function undoAttendance(studentId, index) {
+            const student = students.find(s => s.id === studentId);
+            if (student && student.attended > 0) {
+                // 移除签到记录
+                student.attendanceHistory.splice(index, 1);
+                student.attended--;
+                
+                saveStudents();
+                openEditModal(studentId); // 重新打开编辑模态框以刷新历史记录
+                renderTeacherTable();
+                
+                // 更新搜索状态
+                if (teacherSearchInput.value) {
+                    handleTeacherSearch();
+                }
+            }
+        }
+        
+        // 保存学员
+        function saveStudent() {
+            const name = document.getElementById('studentName').value;
+            const studentClass = document.getElementById('studentClass').value;
+            const totalHours = document.getElementById('totalHours').value;
+            const startDate = document.getElementById('startDate').value;
+            
+            if (!name || !studentClass || !totalHours || !startDate) {
+                alert('请填写所有必填字段！');
+                return;
+            }
+            
+            // 生成唯一ID
+            const newId = students.length > 0 ? Math.max(...students.map(s => s.id)) + 1 : 1;
+            
+            students.push({
+                id: newId,
+                name,
+                class: studentClass,
+                totalHours: parseInt(totalHours),
+                startDate,
+                attended: 0,
+                attendanceHistory: []
+            });
+            
+            saveStudents();
+            renderTeacherTable();
+            closeModal();
+            
+            // 重置表单
+            document.getElementById('studentName').value = '';
+            document.getElementById('studentClass').value = '';
+            document.getElementById('totalHours').value = '20';
+        }
+        
+        // 打开编辑模态框
+        function openEditModal(studentId) {
+            const student = students.find(s => s.id === studentId);
+            if (student) {
+                document.getElementById('editId').value = student.id;
+                document.getElementById('editName').value = student.name;
+                document.getElementById('editClass').value = student.class;
+                document.getElementById('editTotalHours').value = student.totalHours;
+                document.getElementById('editStartDate').value = student.startDate;
+                document.getElementById('editAttended').value = student.attended;
+                
+                // 显示签到历史
+                attendanceHistory.innerHTML = '';
+                if (student.attendanceHistory && student.attendanceHistory.length > 0) {
+                    student.attendanceHistory.forEach((time, index) => {
+                        const historyItem = document.createElement('div');
+                        historyItem.className = 'history-item';
+                        historyItem.innerHTML = `
+                            <span>${time}</span>
+                            <div>
+                                <span>已签到</span>
+                                <button class="undo-btn" data-index="${index}">
+                                    <i class="fas fa-undo"></i> 撤销
+                                </button>
+                            </div>
+                        `;
+                        attendanceHistory.appendChild(historyItem);
+                        
+                        // 添加撤销按钮事件
+                        const undoBtn = historyItem.querySelector('.undo-btn');
+                        undoBtn.addEventListener('click', function() {
+                            const index = parseInt(this.getAttribute('data-index'));
+                            undoAttendance(studentId, index);
+                        });
+                    });
+                } else {
+                    attendanceHistory.innerHTML = '<div class="history-item">暂无签到记录</div>';
+                }
+                
+                editModal.style.display = 'flex';
+            }
+        }
+        
+        // 更新学员信息
+        function updateStudent() {
+            const id = parseInt(document.getElementById('editId').value);
+            const name = document.getElementById('editName').value;
+            const studentClass = document.getElementById('editClass').value;
+            const totalHours = document.getElementById('editTotalHours').value;
+            const startDate = document.getElementById('editStartDate').value;
+            const attended = document.getElementById('editAttended').value;
+            
+            if (!id || !name || !studentClass || !totalHours || !startDate || !attended) {
+                alert('请填写所有字段！');
+                return;
+            }
+            
+            const student = students.find(s => s.id === id);
+            if (student) {
+                student.name = name;
+                student.class = studentClass;
+                student.totalHours = parseInt(totalHours);
+                student.startDate = startDate;
+                student.attended = parseInt(attended);
+                
+                saveStudents();
+                renderTeacherTable();
+                closeModal();
+                
+                // 更新搜索状态
+                if (teacherSearchInput.value) {
+                    handleTeacherSearch();
+                }
+            }
+        }
+        
+        // 关闭模态框
+        function closeModal() {
+            addModal.style.display = 'none';
+            editModal.style.display = 'none';
+            lowHoursModal.style.display = 'none';
+            loginModal.style.display = 'none';
+            loginError.style.display = 'none';
+        }
+        
+        // 删除学员
+        function deleteStudent(studentId) {
+            if (confirm('确定要删除这名学员吗？此操作不可恢复。')) {
+                students = students.filter(student => student.id !== studentId);
+                saveStudents();
+                renderTeacherTable();
+                
+                // 更新搜索状态
+                if (teacherSearchInput.value) {
+                    handleTeacherSearch();
+                }
+            }
+        }
+        
+        // 处理文件导入
+        function handleFileImport(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            
+            // 处理Excel文件
+            if (file.name.match(/\.(xlsx|xls)$/i)) {
+                reader.onload = function(event) {
+                    try {
+                        const data = new Uint8Array(event.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        
+                        // 获取第一个工作表
+                        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                        // 将工作表转换为JSON
+                        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                        
+                        importStatus.innerHTML = '';
+                        
+                        if (jsonData.length < 2) {
+                            importStatus.innerHTML = '<div class="status-error">文件内容为空</div>';
+                            return;
+                        }
+                        
+                        // 检查是否包含标题行
+                        const hasHeader = document.getElementById('headerCheckbox').checked;
+                        const startIndex = hasHeader ? 1 : 0;
+                        
+                        // 导入学员
+                        const newStudents = [];
+                        for (let i = startIndex; i < jsonData.length; i++) {
+                            const row = jsonData[i];
+                            
+                            // 确保行有足够的数据
+                            if (row.length >= 4) {
+                                const name = row[0] ? row[0].toString().trim() : '';
+                                const studentClass = row[1] ? row[1].toString().trim() : '';
+                                const totalHours = parseInt(row[2]) || 0;
+                                const startDate = row[3] ? row[3].toString().trim() : '';
+                                
+                                // 处理上课次数（第5列）
+                                const attended = row.length >= 5 ? parseInt(row[4]) || 0 : 0;
+                                
+                                // 处理签到历史（第6列）
+                                let attendanceHistory = [];
+                                if (row.length >= 6 && row[5]) {
+                                    // 假设签到历史是用分号分隔的字符串
+                                    attendanceHistory = row[5].toString().split(';').filter(item => item.trim());
+                                }
+                                
+                                newStudents.push({
+                                    id: students.length + newStudents.length + 1,
+                                    name,
+                                    class: studentClass,
+                                    totalHours,
+                                    startDate,
+                                    attended, // 使用导入的上课次数
+                                    attendanceHistory // 使用导入的签到历史
+                                });
+                            }
+                        }
+                        
+                        if (newStudents.length > 0) {
+                            students = [...students, ...newStudents];
+                            saveStudents();
+                            renderTeacherTable();
+                            
+                            importStatus.innerHTML = `<div class="status-success">成功导入 ${newStudents.length} 名学员数据</div>`;
+                            setTimeout(() => {
+                                importStatus.innerHTML = '';
+                            }, 5000);
+                        } else {
+                            importStatus.innerHTML = '<div class="status-error">未找到有效的学员数据</div>';
+                        }
+                    } catch (error) {
+                        console.error(error);
+                        importStatus.innerHTML = `<div class="status-error">导入失败: ${error.message}</div>`;
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            } 
+            // 处理CSV文件
+            else if (file.name.match(/\.csv$/i)) {
+                reader.onload = function(event) {
+                    try {
+                        // 使用TextDecoder解决中文乱码问题
+                        const decoder = new TextDecoder('utf-8');
+                        let content;
+                        
+                        if (event.target.result instanceof ArrayBuffer) {
+                            content = decoder.decode(event.target.result);
+                        } else {
+                            content = event.target.result;
+                        }
+                        
+                        parseCSV(content);
+                    } catch (error) {
+                        console.error(error);
+                        importStatus.innerHTML = `<div class="status-error">导入失败: ${error.message}</div>`;
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            } else {
+                importStatus.innerHTML = '<div class="status-error">不支持的文件格式</div>';
+                return;
+            }
+            
+            // 重置文件输入
+            fileInput.value = '';
+        }
+        
+        // 解析CSV
+        function parseCSV(csv) {
+            const lines = csv.split('\n');
+            const newStudents = [];
+            
+            // 检查是否包含标题行
+            const hasHeader = document.getElementById('headerCheckbox').checked;
+            const startIndex = hasHeader ? 1 : 0;
+            
+            for (let i = startIndex; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+                
+                // 处理可能包含逗号的字段
+                const row = line.split(',').reduce((acc, cur) => {
+                    if (cur.startsWith('"') && !cur.endsWith('"')) {
+                        acc.inQuotes = true;
+                        acc.currentField = cur.substring(1);
+                        return acc;
+                    }
+                    
+                    if (acc.inQuotes) {
+                        if (cur.endsWith('"')) {
+                            acc.inQuotes = false;
+                            acc.currentField += ',' + cur.substring(0, cur.length - 1);
+                            acc.fields.push(acc.currentField);
+                            acc.currentField = '';
+                        } else {
+                            acc.currentField += ',' + cur;
+                        }
+                        return acc;
+                    }
+                    
+                    acc.fields.push(cur.replace(/^"|"$/g, ''));
+                    return acc;
+                }, { fields: [], inQuotes: false, currentField: '' }).fields;
+                
+                if (row.length >= 4) {
+                    const name = row[0] ? row[0].trim() : '';
+                    const studentClass = row[1] ? row[1].trim() : '';
+                    const totalHours = parseInt(row[2].trim()) || 0;
+                    const startDate = row[3] ? row[3].trim() : '';
+                    
+                    // 处理上课次数（第5列）
+                    const attended = row.length >= 5 ? parseInt(row[4].trim()) || 0 : 0;
+                    
+                    // 处理签到历史（第6列）
+                    let attendanceHistory = [];
+                    if (row.length >= 6 && row[5]) {
+                        // 假设签到历史是用分号分隔的字符串
+                        attendanceHistory = row[5].split(';').filter(item => item.trim());
+                    }
+                    
+                    newStudents.push({
+                        id: students.length + newStudents.length + 1,
+                        name,
+                        class: studentClass,
+                        totalHours,
+                        startDate,
+                        attended, // 使用导入的上课次数
+                        attendanceHistory // 使用导入的签到历史
+                    });
+                }
+            }
+            
+            if (newStudents.length > 0) {
+                students = [...students, ...newStudents];
+                saveStudents();
+                renderTeacherTable();
+                
+                importStatus.innerHTML = `<div class="status-success">成功导入 ${newStudents.length} 名学员数据</div>`;
+                setTimeout(() => {
+                    importStatus.innerHTML = '';
+                }, 5000);
+            } else {
+                importStatus.innerHTML = '<div class="status-error">未找到有效的学员数据，请检查文件格式</div>';
+            }
+        }
+        
+        // 导出数据
+        function exportData() {
+            if (students.length === 0) {
+                alert('没有学员数据可导出');
+                return;
+            }
+            
+            let csv = '姓名,剩余课时,已上课时,班级,总课时,报名日期,签到历史\n';
+            
+            students.forEach(student => {
+                const remaining = student.totalHours - student.attended;
+                // 将签到历史数组转换为分号分隔的字符串
+                const history = student.attendanceHistory.join(';');
+                
+                csv += `"${student.name}",${remaining},${student.attended},"${student.class}",${student.totalHours},${student.startDate},"${history}"\n`;
+            });
+            
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            
+            link.setAttribute('href', url);
+            link.setAttribute('download', `学员数据_${new Date().toLocaleDateString()}.csv`);
+            link.style.visibility = 'hidden';
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        
+        // 导出低课时学员
+        function exportLowHoursStudents() {
+            const lowHoursStudents = students.filter(student => 
+                (student.totalHours - student.attended) <= 5
+            );
+            
+            if (lowHoursStudents.length === 0) {
+                alert('没有剩余课时不足的学员');
+                return;
+            }
+            
+            let csv = '姓名,剩余课时,班级,总课时,已上课时,报名日期,签到历史\n';
+            
+            lowHoursStudents.forEach(student => {
+                const remaining = student.totalHours - student.attended;
+                const history = student.attendanceHistory.join(';');
+                csv += `"${student.name}",${remaining},"${student.class}",${student.totalHours},${student.attended},${student.startDate},"${history}"\n`;
+            });
+            
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            
+            link.setAttribute('href', url);
+            link.setAttribute('download', `低课时学员_${new Date().toLocaleDateString()}.csv`);
+            link.style.visibility = 'hidden';
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        
+        // 显示低课时学员
+        function showLowHoursStudents() {
+            const lowHoursStudents = students.filter(student => 
+                (student.totalHours - student.attended) <= 5
+            );
+            
+            if (lowHoursStudents.length === 0) {
+                alert('没有剩余课时不足的学员');
+                return;
+            }
+            
+            lowHoursList.innerHTML = '';
+            
+            lowHoursStudents.forEach(student => {
+                const remaining = student.totalHours - student.attended;
+                const row = document.createElement('tr');
+                
+                row.innerHTML = `
+                    <td>${student.name}</td>
+                    <td class="${remaining <= 0 ? 'negative-hours' : 'low-hours'}">${remaining}</td>
+                    <td>${student.class}</td>
+                    <td>${student.startDate}</td>
+                `;
+                
+                lowHoursList.appendChild(row);
+            });
+            
+            lowHoursModal.style.display = 'flex';
+        }
+        
+        // 处理教师搜索
+        function handleTeacherSearch() {
+            const searchTerm = teacherSearchInput.value.toLowerCase();
+            if (!searchTerm) {
+                renderTeacherTable();
+                return;
+            }
+            
+            const filtered = students.filter(student => 
+                student.name.toLowerCase().includes(searchTerm) ||
+                student.class.toLowerCase().includes(searchTerm)
+            );
+            renderTeacherTable(filtered);
+        }
+        
+        // 重置数据
+        function resetData() {
+            if (confirm('确定要重置所有数据吗？此操作将删除所有学员记录。')) {
+                students = [];
+                saveStudents();
+                renderTeacherTable();
+                importStatus.innerHTML = '<div class="status-success">所有学员数据已重置</div>';
+                setTimeout(() => {
+                    importStatus.innerHTML = '';
+                }, 3000);
+            }
+        }
+        
+        // 处理登录
+        function handleLogin() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            if (username === 'lmhs' && password === '3993') {
+                // 登录成功
+                parentDashboard.style.display = 'none';
+                teacherDashboard.style.display = 'block';
+                document.body.classList.add('teacher-dashboard');
+                closeModal();
+            } else {
+                loginError.style.display = 'block';
+            }
+        }
+        
+        // 退出登录
+        function logout() {
+            teacherDashboard.style.display = 'none';
+            parentDashboard.style.display = 'block';
+            document.body.classList.remove('teacher-dashboard');
+            
+            // 清空家长搜索
+            parentSearchInput.value = '';
+            parentResult.style.display = 'none';
+        }
+        
+        // 更新统计信息
+        function updateStats() {
+            totalStudentsEl.textContent = students.length;
+            
+            const totalClasses = students.reduce((sum, student) => sum + student.attended, 0);
+            totalClassesEl.textContent = totalClasses;
+            
+            const lowHoursCount = students.filter(student => 
+                (student.totalHours - student.attended) <= 5
+            ).length;
+            lowHoursEl.textContent = lowHoursCount;
+        }
+    </script>
+</body>
+</html>
